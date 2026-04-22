@@ -1,4 +1,4 @@
-# Tri-Forensic Hypergraph Discrepancy Network for Generalized Image Forgery Detection
+# FIDF (Fake Image Detection Framework) a Tri-Forensic Hypergraph Discrepancy Network for Generalized Image Forgery Detection
 
 <div align="center">
 
