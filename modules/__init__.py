@@ -1,6 +1,6 @@
 # modules/__init__.py
 """
-Core modules for TF-HDN architecture.
+
 """
 
 from .dct import LearnableDCT
