@@ -8,7 +8,7 @@
 
 **Official Implementation of FIDF (Fake Image Detection Framework)**
 
-  [🚀 Quick Start](#-quick-start) • [📊 Results](#-results) • [🏗️ Architecture](#%EF%B8%8F-architecture) • [📚 Citation](#-citation)
+  [🚀 Quick Start](#-quick-start) • [📊 Results](#-results) • [🏗️ Architecture](#%EF%B8%8F-architecture) 
 
 </div>
 
