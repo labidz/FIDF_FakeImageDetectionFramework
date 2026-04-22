@@ -118,3 +118,111 @@ pip install -r requirements.txt
 # Install package in development mode
 pip install -e .
 
+Dataset Preparation
+Organize datasets in the following structure:
+data/
+├── CASIA_v1/
+│   ├── train/
+│   │   ├── real/
+│   │   └── fake/
+│   ├── val/
+│   │   ├── real/
+│   │   └── fake/
+│   └── test/
+│       ├── real/
+│       └── fake/
+├── CASIA_v2/
+│   └── ...
+├── Columbia/
+│   └── ...
+├── MICC_F2000/
+│   └── ...
+└── Own_Dataset/
+    └── ...
+
+Training
+# Train FIDF on CASIA v2
+python train.py \
+    --model fidf \
+    --dataset CASIA_v2 \
+    --data_dir ./data \
+    --batch_size 32 \
+    --epochs 40 \
+    --lr 2e-4 \
+    --output_dir ./outputs/casia_v2 \
+    --wandb  # optional logging
+
+# Train baseline models
+python train.py --model resnet_tl --dataset CASIA_v2 --data_dir ./data
+python train.py --model mga_net --dataset CASIA_v2 --data_dir ./data
+python train.py --model mininet --dataset CASIA_v2 --data_dir ./data
+
+Evaluation
+# Evaluate trained model
+python evaluate.py \
+    --model fidf \
+    --checkpoint ./outputs/casia_v2/fidf_best.pt \
+    --dataset CASIA_v2 \
+    --data_dir ./data \
+    --split test
+
+# Cross-dataset evaluation
+python evaluate_cross_dataset.py \
+    --model fidf \
+    --checkpoint ./outputs/casia_v2/fidf_best.pt \
+    --train_dataset CASIA_v2 \
+    --test_datasets Columbia MICC_F2000 Own_Dataset
+
+Inference on Single Image
+import torch
+from PIL import Image
+from models import TFHDN
+from data.transforms import get_transforms
+
+# Load model
+model = TFHDN()
+model.load_state_dict(torch.load('fidf_best.pt'))
+model.eval()
+
+# Preprocess
+transform = get_transforms(img_size=224, augment=False)[1]
+image = Image.open('test_image.jpg').convert('RGB')
+input_tensor = transform(image).unsqueeze(0)
+
+# Predict
+with torch.no_grad():
+    logits = model(input_tensor)
+    prob_fake = torch.softmax(logits, dim=1)[0, 1].item()
+    
+print(f"Probability of manipulation: {prob_fake:.4f}")
+
+## 📈 Training Details
+
+### Hyperparameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Image Size | 224×224 | Input resolution |
+| Batch Size | 32 | Per GPU |
+| Gradient Accumulation | 4 | Effective batch = 128 |
+| Optimizer | AdamW | β₁=0.9, β₂=0.999 |
+| Learning Rate | 2e-4 | With cosine decay |
+| Weight Decay | 5e-4 | L2 regularization |
+| Warmup Epochs | 3 | Linear warmup |
+| Total Epochs | 40 | With early stopping (patience=8) |
+| α_recon | 0.10 | Reconstruction loss weight |
+| β_supcon | 0.20 | Supervised contrastive loss weight |
+| γ_ortho | 0.01 | DCT orthogonality regularization |
+
+---
+
+## 🧪 Ablation Studies
+
+| Configuration | CASIA v2 | Columbia | MICC-F2000 | Avg |
+|---------------|----------|----------|------------|-----|
+| RGB Only | 68.42% | 74.55% | 89.33% | 77.43% |
+| RGB + DCT | 71.90% | 78.18% | 92.00% | 80.69% |
+| RGB + Noise | 70.48% | 76.36% | 90.67% | 79.17% |
+| All Streams (w/o DGCA) | 73.33% | 80.00% | 93.33% | 82.22% |
+| All Streams (w/o HyperGraph) | 74.76% | 81.82% | 94.67% | 83.75% |
+| **Full FIDF** | **76.90%** | **83.64%** | **96.00%** | **85.51%** |
